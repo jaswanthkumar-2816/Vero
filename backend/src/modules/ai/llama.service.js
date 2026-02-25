@@ -6,17 +6,21 @@ const MODEL_NAME = process.env.MODEL_NAME || 'llama3';
 
 const extractJobDescriptionData = async (text) => {
     const prompt = `
-    Analyze the following job description and extract the required skills and experience.
-    Return only a JSON object with the following structure:
+    Analyze this Job Description and extract:
+    1. A concise job title.
+    2. A list of technical skills (languages, frameworks, tools).
+    3. Minimum years of experience required (integer). 
+
+    Format: JSON ONLY.
     {
-      "requiredSkills": ["skill1", "skill2"],
-      "experience": "years of experience required",
-      "summary": "brief summary of the role"
+      "title": "Title",
+      "extractedSkills": ["Skill 1", "Skill 2"],
+      "extractedExperience": 0
     }
 
-    Job Description:
+    JD:
     ${text}
-  `;
+    `;
 
     try {
         const response = await axios.post(OLLAMA_URL, {
@@ -26,24 +30,33 @@ const extractJobDescriptionData = async (text) => {
             format: 'json'
         });
 
-        return JSON.parse(response.data.response);
+        const result = JSON.parse(response.data.response);
+        return {
+            title: result.title || 'Untitled Job',
+            extractedSkills: Array.isArray(result.extractedSkills) ? result.extractedSkills : [],
+            extractedExperience: Number(result.extractedExperience) || 0
+        };
     } catch (error) {
         console.error('Error calling Ollama for JD:', error.message);
-        throw new Error('AI extraction failed');
+        return { title: 'Untitled Job', extractedSkills: [], extractedExperience: 0 };
     }
 };
 
 const extractCandidateData = async (text) => {
     const prompt = `
-    Analyze the following resume and extract candidate's name, email, phone, skills, and experience.
+    Analyze the following resume and extract candidate's information.
     Return only a JSON object with the following structure:
     {
       "name": "Full Name",
       "email": "Email Address",
       "phone": "Phone Number",
       "skills": ["skill1", "skill2"],
-      "experience": "Total experience description",
-      "yearsOfExperience": number
+      "skillCount": number,
+      "projects": ["project description 1", "project description 2"],
+      "projectCount": number,
+      "hackathonCount": number,
+      "internshipCount": number,
+      "experience": number
     }
 
     Resume:

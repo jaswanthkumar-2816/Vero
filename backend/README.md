@@ -41,7 +41,7 @@ Create a new file inside `backend` folder:
 
 Add the following:
 ```env
-PORT=5000
+PORT=1628
 MONGODB_URI=mongodb://localhost:27017/vero-ats
 OLLAMA_URL=http://localhost:11434/api/generate
 MODEL_NAME=llama3
@@ -84,7 +84,7 @@ npm run dev
 
 Expected output:
 ```text
-Server running on port 5000
+Server running on port 1628
 MongoDB connected
 ```
 

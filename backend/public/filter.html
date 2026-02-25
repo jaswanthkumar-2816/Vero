@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vero AI - Constraints</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #10b981;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .section {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        label {
+            color: var(--text-dim);
+            flex: 1;
+        }
+
+        input {
+            width: 120px;
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            text-align: center;
+        }
+
+        .skill-group {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .skill-group input {
+            width: 100%;
+            text-align: left;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            background: var(--primary);
+            color: #010409;
+            transition: 0.2s;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Step 2: Apply Filters</h1>
+        <p id="jdPreview" style="color: var(--primary); text-align: center; margin-bottom: 1.5rem;"></p>
+        <div class="section">
+            <div class="form-group">
+                <label>ATS Score ≥</label>
+                <input type="number" id="minMatchScore" value="70">
+            </div>
+            <div class="form-group">
+                <label>Skills Count ≥</label>
+                <input type="number" id="minSkillCount" value="4">
+            </div>
+            <div class="form-group">
+                <label>Projects Count ≥</label>
+                <input type="number" id="minProjectCount" value="2">
+            </div>
+            <div class="form-group">
+                <label>Hackathons Count ≥</label>
+                <input type="number" id="minHackathonCount" value="0">
+            </div>
+            <div class="form-group">
+                <label>Internships Count ≥</label>
+                <input type="number" id="minInternshipCount" value="0">
+            </div>
+            <div class="form-group">
+                <label>Experience ≥</label>
+                <input type="number" id="minExperience" value="2">
+            </div>
+            <div class="form-group skill-group">
+                <label>Manual Skill Search</label>
+                <input type="text" id="manualSkill" placeholder="e.g. Node.js">
+            </div>
+            <button onclick="applyFilters()">Apply Filters</button>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const jdId = urlParams.get('id');
+
+        async function init() {
+            if (!jdId || jdId === 'undefined') {
+                alert("Missing Job ID. Please upload a JD first.");
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                const res = await fetch(`/api/job-description/${jdId}/preview`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Job not found");
+                document.getElementById('jdPreview').textContent = `Filtering for: ${data.title}`;
+            } catch (err) {
+                console.error(err);
+                alert("Error: " + err.message);
+                window.location.href = 'index.html';
+            }
+        }
+        init();
+
+        function applyFilters() {
+            const params = new URLSearchParams();
+            params.append('id', jdId);
+            params.append('minMatchScore', document.getElementById('minMatchScore').value);
+            params.append('minSkillCount', document.getElementById('minSkillCount').value);
+            params.append('minProjectCount', document.getElementById('minProjectCount').value);
+            params.append('minHackathonCount', document.getElementById('minHackathonCount').value);
+            params.append('minInternshipCount', document.getElementById('minInternshipCount').value);
+            params.append('minExperience', document.getElementById('minExperience').value);
+            params.append('manualSkill', document.getElementById('manualSkill').value);
+
+            window.location.href = `results.html?${params.toString()}`;
+        }
+    </script>
+</body>
+
+</html>

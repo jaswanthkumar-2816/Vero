@@ -43,7 +43,12 @@ const uploadResumes = async (req, res) => {
                     email: candidateData.email,
                     phone: candidateData.phone,
                     skills: candidateData.skills,
-                    experience: candidateData.experience,
+                    skillCount: candidateData.skillCount || 0,
+                    projects: candidateData.projects || [],
+                    projectCount: candidateData.projectCount || 0,
+                    hackathonCount: candidateData.hackathonCount || 0,
+                    internshipCount: candidateData.internshipCount || 0,
+                    experience: Number(candidateData.experience) || 0,
                     resumePath: file.path,
                     matchScore,
                     analysis: candidateData

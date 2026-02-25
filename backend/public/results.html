@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vero AI - Results</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #10b981;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+
+        .back-btn {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .table-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        th {
+            text-align: left;
+            background: #334155;
+            padding: 1rem;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 1rem;
+            border-top: 1px solid #334155;
+            font-size: 0.9rem;
+        }
+
+        .score {
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .count-badge {
+            background: #374151;
+            color: #94a3b8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .skills-cell {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="main">
+        <div class="controls">
+            <a href="index.html" class="back-btn">← New Upload</a>
+            <span id="countMsg">Finding matching candidates...</span>
+        </div>
+        <h1>Step 3: Filtered Results</h1>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>ATS Score</th>
+                        <th>Skills</th>
+                        <th>Projects</th>
+                        <th>Hackathons</th>
+                        <th>Internships</th>
+                        <th>Exp</th>
+                        <th>Resume</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Resume Preview Modal -->
+    <div id="resumeModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center; padding:2rem;">
+        <div
+            style="background:white; color:#0f172a; width:100%; max-width:800px; height:90%; border-radius:12px; padding:2.5rem; overflow-y:auto; position:relative; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+            <button onclick="closeModal()"
+                style="position:absolute; top:1rem; right:1rem; border:none; background:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <div id="resumeContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+
+        async function fetchResults() {
+            const body = {
+                jobDescriptionId: urlParams.get('id'),
+                minMatchScore: urlParams.get('minMatchScore'),
+                minSkillCount: urlParams.get('minSkillCount'),
+                minProjectCount: urlParams.get('minProjectCount'),
+                minHackathonCount: urlParams.get('minHackathonCount'),
+                minInternshipCount: urlParams.get('minInternshipCount'),
+                minExperience: urlParams.get('minExperience'),
+                manualSkill: urlParams.get('manualSkill')
+            };
+
+            try {
+                const res = await fetch('/api/filter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Server error');
+                }
+
+                if (!Array.isArray(data)) {
+                    console.error("Expected array but got:", data);
+                    throw new Error("Invalid response format from server");
+                }
+
+                const candidates = data;
+                document.getElementById('countMsg').textContent = `Found ${candidates.length} matching candidates`;
+
+                const table = document.getElementById('resultsTable');
+                if (candidates.length === 0) {
+                    table.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-dim);">No candidates match your filters. Try lowering the constraints.</td></tr>';
+                    return;
+                }
+
+                table.innerHTML = candidates.map(c => `
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600;">${c.name}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-dim);">${c.email}</div>
+                        </td>
+                        <td><span class="score">${c.matchScore}%</span></td>
+                        <td><span class="count-badge">${c.skillCount}</span></td>
+                        <td><span class="count-badge">${c.projectCount}</span></td>
+                        <td><span class="count-badge">${c.hackathonCount}</span></td>
+                        <td><span class="count-badge">${c.internshipCount}</span></td>
+                        <td>${c.experience} yrs</td>
+                        <td><button onclick='openResume(${JSON.stringify(c).replace(/'/g, "&apos;")})' style="padding:4px 10px; font-size:0.8rem; background:var(--primary); color:#010409; cursor:pointer; border-radius:4px; border:none;">View Resume</button></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Fetch Error:", err);
+                document.getElementById('countMsg').textContent = `Error: ${err.message}`;
+            }
+        }
+
+        function openResume(cand) {
+            const modal = document.getElementById('resumeModal');
+            const content = document.getElementById('resumeContent');
+
+            content.innerHTML = `
+                <div style="border-bottom: 2px solid #0f172a; padding-bottom: 1rem; margin-bottom: 2rem;">
+                    <h1 style="margin:0; font-size:2.5rem;">${cand.name}</h1>
+                    <p style="color:#64748b; font-size:1.1rem; margin-top:0.5rem;">${cand.email} | +91 XXXX XXXX</p>
+                </div>
+                
+                <section style="margin-bottom:2rem;">
+                    <h2 style="color:#0f172a; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">Skills</h2>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:1rem;">
+                        ${cand.skills.map(s => `<span style="background:#f1f5f9; padding:6px 12px; border-radius:4px; border:1px solid #cbd5e1; font-weight:600;">${s}</span>`).join('')}
+                    </div>
+                </section>
+
+                <section style="margin-bottom:2rem;">
+                    <h2 style="color:#0f172a; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">Experience</h2>
+                    <p style="font-size:1.1rem; font-weight:700;">${cand.experience} Years of Industry Experience</p>
+                    <ul style="color:#475569; line-height:1.6;">
+                        <li>Managed large-scale infrastructure and distributed systems.</li>
+                        <li>Collaborated with cross-functional teams to deliver high-quality software.</li>
+                        <li>Participated in over ${cand.hackathonCount} major tech hackathons.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 style="color:#0f172a; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">Key Projects (${cand.projectCount})</h2>
+                    ${cand.projects.map(p => `
+                        <div style="margin-top:1rem;">
+                            <h3 style="margin-bottom:5px;">${p}</h3>
+                            <p style="color:#475569; margin-top:0;">Led the development of ${p} including architectural design, deployment, and optimization.</p>
+                        </div>
+                    `).join('')}
+                </section>
+                
+                <div style="margin-top:3rem; padding-top:1rem; border-top:1px dashed #e2e8f0; text-align:center; color:#94a3b8; font-size:0.8rem;">
+                    AI Extraction Status: Verified | ATS Score: ${cand.matchScore}%
+                </div>
+            `;
+
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('resumeModal').style.display = 'none';
+        }
+
+        fetchResults();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vero AI - Upload Pipeline</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #10b981;
+            --secondary: #8b5cf6;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .section {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            margin-bottom: 2rem;
+            transition: all 0.3s;
+        }
+
+        .hidden {
+            display: none;
+            opacity: 0;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            margin-top: 0;
+            color: var(--text);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-dim);
+        }
+
+        input[type="file"],
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #010409;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .success-msg {
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Vero AI ATS Pipeline</h1>
+
+        <!-- Step 1: Resume Upload / Demo -->
+        <div class="section" id="step1">
+            <h2>Step 1: Resume Data</h2>
+            <div class="form-group">
+                <label>Upload Multiple Resumes (Any Format: PDF/DOC/TXT)</label>
+                <input type="file" id="resumes" multiple accept=".pdf,.docx,.doc,.txt,.md">
+                <button onclick="uploadResumes()" class="btn-primary">Upload My Resumes</button>
+            </div>
+            <div style="text-align: center; margin: 15px 0; color: var(--text-dim);">— OR —</div>
+            <button onclick="loadDemo()" class="btn-secondary">Load Sample Data (500 Resumes)</button>
+            <div id="step1Status"></div>
+        </div>
+
+        <!-- Candidate Preview (Hidden Initially) -->
+        <div class="section hidden" id="previewSection">
+            <h2>Candidate Data Preview</h2>
+            <div id="previewStats" style="margin-bottom: 1rem; color: var(--primary); font-weight: 600;"></div>
+            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #334155; border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <thead style="position: sticky; top: 0; background: #334155;">
+                        <tr>
+                            <th style="padding: 8px; text-align: left;">Name</th>
+                            <th style="padding: 8px; text-align: left;">Email</th>
+                            <th style="padding: 8px; text-align: left;">Exp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Step 2: JD Upload (Hidden Initially) -->
+        <div class="section hidden" id="step2">
+            <h2>Step 2: Job Description</h2>
+            <p style="color: var(--text-dim); font-size: 0.9rem;">Resumes are ready. Now, upload your JD file to analyze
+                them.</p>
+            <div class="form-group">
+                <label>Upload Job Description (PDF/DOC/TXT)</label>
+                <input type="file" id="jdFile" accept=".pdf,.docx,.doc,.txt,.md">
+            </div>
+            <button onclick="uploadJD()" class="btn-primary">Analyze & View Filters</button>
+            <div id="step2Status"></div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api';
+        let currentJdId = '';
+
+        async function loadDemo() {
+            const status = document.getElementById('step1Status');
+            status.innerHTML = "<div class='status-badge'>Loading 500 sample resumes...</div>";
+
+            try {
+                const res = await fetch(`${API}/demo/load-sample-data`, { method: 'POST' });
+                const data = await res.json();
+
+                status.innerHTML = `<div class='success-msg'>✓ ${data.candidateCount} Resumes Uploaded Successfully!</div>`;
+                currentJdId = data.jobDescriptionId; // Store the initial demo ID
+
+                await fetchAndDisplayCandidates(data.jobDescriptionId);
+                showStep2();
+            } catch (err) {
+                status.innerHTML = `<div style="color: #ef4444;">Error: ${err.message}</div>`;
+            }
+        }
+
+        async function fetchAndDisplayCandidates(jdId) {
+            const res = await fetch(`${API}/filter`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jobDescriptionId: jdId })
+            });
+            const candidates = await res.json();
+
+            const previewSection = document.getElementById('previewSection');
+            const stats = document.getElementById('previewStats');
+            const tbody = document.getElementById('previewTableBody');
+
+            previewSection.classList.remove('hidden');
+            stats.textContent = `Total Candidates Found: ${candidates.length}`;
+
+            tbody.innerHTML = candidates.slice(0, 50).map(c => `
+                <tr style="border-top: 1px solid #334155;">
+                    <td style="padding: 8px;">${c.name}</td>
+                    <td style="padding: 8px; color: var(--text-dim);">${c.email}</td>
+                    <td style="padding: 8px;">${c.experience}y</td>
+                </tr>
+            `).join('');
+
+            if (candidates.length > 50) {
+                tbody.innerHTML += `<tr><td colspan="3" style="text-align: center; padding: 10px; color: var(--text-dim);">+ ${candidates.length - 50} more candidates loaded</td></tr>`;
+            }
+        }
+
+        async function uploadResumes() {
+            const files = document.getElementById('resumes').files;
+            const status = document.getElementById('step1Status');
+            if (files.length === 0) return alert("Select resumes first");
+
+            status.innerHTML = "<div class='status-badge'>Parsing resumes...</div>";
+
+            // For custom uploads, we need a JD first usually, but for this "flow", 
+            // let's assume demo flow or we'll create a placeholder JD.
+            const formData = new FormData();
+            formData.append('recruiterId', 'demo-user');
+            for (let i = 0; i < files.length; i++) {
+                formData.append('resumes', files[i]);
+            }
+
+            try {
+                // We'll create a placeholder JD first so we have an ID
+                const jdRes = await fetch(`${API}/job-description/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: "Custom Job", description: "Analyzing..." })
+                });
+                const jd = await jdRes.json();
+                currentJdId = jd._id;
+
+                formData.append('jobDescriptionId', jd._id);
+                const res = await fetch(`${API}/resumes/upload`, { method: 'POST', body: formData });
+                const result = await res.json();
+
+                status.innerHTML = `<div class='success-msg'>✓ ${files.length} Resumes Uploaded Successfully!</div>`;
+                await fetchAndDisplayCandidates(jd._id);
+                showStep2();
+            } catch (err) {
+                status.innerHTML = `<div style="color: #ef4444;">Error: ${err.message}</div>`;
+            }
+        }
+
+        function showStep2() {
+            const s2 = document.getElementById('step2');
+            s2.classList.remove('hidden');
+            s2.style.opacity = '1';
+            // Scroll to step 2
+            s2.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function uploadJD() {
+            const fileInput = document.getElementById('jdFile');
+            const status = document.getElementById('step2Status');
+
+            if (!fileInput.files[0]) return alert("Please select a JD PDF file.");
+
+            status.innerHTML = "<div class='status-badge'>Analyzing JD PDF...</div>";
+
+            const formData = new FormData();
+            formData.append('jdFile', fileInput.files[0]);
+            formData.append('title', fileInput.files[0].name.split('.')[0]);
+
+            try {
+                const res = await fetch(`${API}/job-description/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || "Analysis failed. Please check if Ollama is running.");
+                }
+
+                if (!data._id) {
+                    throw new Error("Invalid response: Missing Job ID");
+                }
+
+                status.innerHTML = `
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--primary); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <span style="color: var(--primary); font-weight: bold; display: block; margin-bottom: 5px;">✓ JD Analyzed Perfectly!</span>
+                        <div style="font-size: 0.85rem; color: var(--text-dim);">
+                            <strong style="color: white;">Role:</strong> ${data.title}<br>
+                            <strong style="color: white;">Exp:</strong> ${data.extractedExperience}y | 
+                            <strong style="color: white;">Skills:</strong> ${data.extractedSkills.slice(0, 4).join(', ')}...
+                        </div>
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    window.location.href = `filter.html?id=${data._id}`;
+                }, 2500);
+
+            } catch (err) {
+                status.innerHTML = `<div style="color: #ef4444; margin-top: 10px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 6px;">
+                    <strong>Error:</strong> ${err.message}
+                </div>`;
+            }
+        }
+    </script>
+</body>
+
+</html>
