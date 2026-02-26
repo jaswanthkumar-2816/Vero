@@ -30,16 +30,22 @@ const calculateMatchScore = (candidateData, jdData) => {
         experienceScore = (candYears / jdYears) * 30;
     }
 
-    // 3. Keyword Similarity (20%)
+    // 3. Keyword Similarity (10%)
     if (reqSkills.length > 0) {
         const keywords = reqSkills.map(s => s.toLowerCase());
         const candText = (candSkills.join(' ') + ' ' + (candidateData.experience || '')).toLowerCase();
         const keywordMatches = keywords.filter(kw => candText.includes(kw));
-        keywordScore = (keywordMatches.length / keywords.length) * 20;
-        if (keywordScore > 20) keywordScore = 20;
+        keywordScore = (keywordMatches.length / keywords.length) * 10;
+    } else {
+        keywordScore = 5; // Base fallback if JD has no skills
     }
 
-    return Math.round(skillScore + experienceScore + keywordScore);
+    // 4. Activity Multiplier (10%)
+    // Rewards projects, hackathons and internships
+    const activityCount = (candidateData.projectCount || 0) + (candidateData.hackathonCount || 0) + (candidateData.internshipCount || 0);
+    const activityScore = Math.min(activityCount * 2, 10);
+
+    return Math.round(skillScore + experienceScore + keywordScore + activityScore);
 };
 
 module.exports = { calculateMatchScore };

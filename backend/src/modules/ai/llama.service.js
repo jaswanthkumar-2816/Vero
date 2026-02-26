@@ -78,7 +78,42 @@ const extractCandidateData = async (text) => {
     }
 };
 
+const generateCandidateSummary = async (candidate, jd) => {
+    const prompt = `
+    Generate a 2-3 line recruiter-friendly summary for this candidate relative to the Job Description.
+    Focus on their top strengths and why they are a good match (or not).
+    Keep it professional and concise.
+
+    Candidate:
+    Name: ${candidate.name || 'N/A'}
+    Skills: ${(candidate.skills || []).join(', ')}
+    Experience: ${candidate.experience || 0} years
+    Projects: ${(candidate.projects || []).join(', ')}
+
+    Job Description:
+    Title: ${jd.title || 'N/A'}
+    Required Skills: ${(jd.extractedSkills || []).join(', ')}
+    Required Exp: ${jd.extractedExperience || 0} years
+
+    Summary:
+    `;
+
+    try {
+        const response = await axios.post(OLLAMA_URL, {
+            model: MODEL_NAME,
+            prompt: prompt,
+            stream: false
+        });
+
+        return response.data.response.trim();
+    } catch (error) {
+        console.error('Error calling Ollama for Summary:', error.message);
+        return 'AI Summary currently unavailable.';
+    }
+};
+
 module.exports = {
     extractJobDescriptionData,
-    extractCandidateData
+    extractCandidateData,
+    generateCandidateSummary
 };

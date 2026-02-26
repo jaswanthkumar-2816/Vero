@@ -221,7 +221,7 @@
             const jdData = await jdRes.json();
             document.getElementById('jdTitle').textContent = jdData.title;
             document.getElementById('jdId').textContent = `JOB ID: ${jdData._id}`;
-            document.getElementById('jdSummary').innerHTML = `<strong>Required Skills:</strong> ${jdData.requiredSkills.join(', ')} | <strong>Target Exp:</strong> ${jdData.experience} Years`;
+            document.getElementById('jdSummary').innerHTML = `<strong>Required Skills:</strong> ${jdData.extractedSkills?.join(', ') || 'N/A'} | <strong>Target Exp:</strong> ${jdData.extractedExperience || 0} Years`;
 
             // 2. Fetch Analytics & Candidates
             fetchData('all');

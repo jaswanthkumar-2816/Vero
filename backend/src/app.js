@@ -12,6 +12,8 @@ const dashboardRoutes = require('./modules/dashboard/dashboard.routes');
 const demoRoutes = require('./modules/demo/demo.routes');
 const { seedDatabase } = require('./utils/seed.controller');
 
+const fs = require('fs');
+
 const app = express();
 
 // Middleware
@@ -20,8 +22,21 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Handle missing demo resumes
+app.get('/uploads/resumes/:filename', (req, res, next) => {
+    const filePath = path.join(__dirname, '../uploads/resumes', req.params.filename);
+    if (!fs.existsSync(filePath)) {
+        const demoPath = path.join(__dirname, '../uploads/resumes/demo-resume.pdf');
+        if (fs.existsSync(demoPath)) {
+            return res.sendFile(demoPath);
+        }
+    }
+    next();
+});
+
 // Static files for resumes and tester UI
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads/resumes', express.static(path.join(__dirname, '../uploads/resumes')));
+app.use('/uploads/jds', express.static(path.join(__dirname, '../uploads/jds')));
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Routes
@@ -33,9 +48,13 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/demo', demoRoutes);
 app.post('/api/seed', seedDatabase);
 
-// Error fallback
-app.get('/', (req, res) => {
-    res.json({ message: 'Vero AI Backend API is running' });
+// Error handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({
+        error: err.message || 'Internal Server Error',
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
 });
 
 module.exports = app;

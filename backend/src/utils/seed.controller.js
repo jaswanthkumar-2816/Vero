@@ -54,8 +54,8 @@ const seedDatabase = async (req, res) => {
                 email: `${fName.toLowerCase()}${i}@example.com`,
                 phone: `555-${String(i).padStart(4, '0')}`,
                 skills: randomSkills,
-                experience: `${Math.floor(Math.random() * 10) + 1} years`,
-                resumePath: `uploads/resumes/sample-${i}.pdf`,
+                experience: Math.floor(Math.random() * 10) + 1,
+                resumePath: `uploads/resumes/demo-resume.pdf`,
                 matchScore: score,
                 status: score > 80 ? 'shortlisted' : (score < 30 ? 'rejected' : 'pending'),
                 analysis: {

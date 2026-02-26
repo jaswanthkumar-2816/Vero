@@ -1,7 +1,13 @@
 const fs = require('fs');
-let pdf = require('pdf-parse');
+let pdf;
+try {
+    pdf = require('pdf-parse');
+} catch (e) {
+    console.error("Critical: pdf-parse not found");
+}
+
 // Handle possible ESM interop issues
-if (typeof pdf !== 'function' && pdf.default) pdf = pdf.default;
+if (pdf && typeof pdf !== 'function' && pdf.default) pdf = pdf.default;
 
 const mammoth = require('mammoth');
 const path = require('path');

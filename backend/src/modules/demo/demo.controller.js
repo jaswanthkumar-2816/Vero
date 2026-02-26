@@ -70,7 +70,7 @@ const loadSampleData = async (req, res) => {
                 experience: Math.floor(Math.random() * 12) + 1,
                 matchScore: score,
                 status: "pending",
-                resumePath: `uploads/resumes/${archetype.name.toLowerCase().replace(/ /g, '-')}-${i}.pdf`
+                resumePath: `uploads/resumes/demo-resume.pdf`
             });
         }
 

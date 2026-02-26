@@ -141,6 +141,15 @@
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Job not found");
                 document.getElementById('jdPreview').textContent = `Filtering for: ${data.title}`;
+
+                // Pre-fill values from URL if they exist
+                const keys = ['minMatchScore', 'minSkillCount', 'minProjectCount', 'minHackathonCount', 'minInternshipCount', 'minExperience', 'manualSkill'];
+                keys.forEach(key => {
+                    const val = urlParams.get(key);
+                    if (val !== null) {
+                        document.getElementById(key).value = val;
+                    }
+                });
             } catch (err) {
                 console.error(err);
                 alert("Error: " + err.message);
