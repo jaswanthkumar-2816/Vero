@@ -1,0 +1,16 @@
+# System Files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# Project Specific
+backend/uploads/
+*.log
