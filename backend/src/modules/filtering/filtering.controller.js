@@ -65,7 +65,7 @@ function buildFilterQuery(body) {
         throw new Error('Valid Job Description ID is required');
     }
 
-    let query = { jobDescriptionId };
+    let query = { jobDescriptionId: new mongoose.Types.ObjectId(jobDescriptionId) };
 
     if (!top10) {
         if (minMatchScore) query.matchScore = { $gte: Number(minMatchScore) };

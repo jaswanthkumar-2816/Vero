@@ -314,22 +314,29 @@
 
                 const table = document.getElementById('resultsTable');
                 if (candidates.length === 0) {
+                    const isTop10 = urlParams.get('top10') === 'true';
                     table.innerHTML = `
                         <tr>
-                            <td colspan="8" style="text-align:center; padding:4rem;">
+                            <td colspan="9" style="text-align:center; padding:4rem;">
                                 <div style="font-size: 1.2rem; margin-bottom: 2rem; color: var(--text-dim);">
-                                    No candidates match your strict filters.
+                                    ${isTop10 ? 'No candidates found for this Job Description in the database.' : 'No candidates match your strict filters.'}
                                 </div>
                                 <div style="display: flex; gap: 1rem; justify-content: center;">
-                                    <button onclick="relaxFilters()" style="width: auto; padding: 0.8rem 1.5rem; background: var(--primary); color: #010409; font-weight: 700; border-radius: 8px; border: none; cursor: pointer;">
-                                        Relax Filters (-20%)
-                                    </button>
-                                    <button onclick="editFilters()" style="width: auto; padding: 0.8rem 1.5rem; background: #334155; color: white; font-weight: 700; border-radius: 8px; border: none; cursor: pointer;">
-                                        Edit Filters
-                                    </button>
-                                    <button onclick="showTop10()" style="width: auto; padding: 0.8rem 1.5rem; background: var(--secondary); color: white; font-weight: 700; border-radius: 8px; border: none; cursor: pointer;">
-                                        Show Top 10 Anyway
-                                    </button>
+                                    ${!isTop10 ? `
+                                        <button onclick="relaxFilters()" style="width: auto; padding: 0.8rem 1.5rem; background: var(--primary); color: #010409; font-weight: 700; border-radius: 8px; border: none; cursor: pointer;">
+                                            Relax Filters (-20%)
+                                        </button>
+                                        <button onclick="editFilters()" style="width: auto; padding: 0.8rem 1.5rem; background: #334155; color: white; font-weight: 700; border-radius: 8px; border: none; cursor: pointer;">
+                                            Edit Filters
+                                        </button>
+                                        <button onclick="showTop10()" style="width: auto; padding: 0.8rem 1.5rem; background: var(--secondary); color: white; font-weight: 700; border-radius: 8px; border: none; cursor: pointer;">
+                                            Show Top 10 Anyway
+                                        </button>
+                                    ` : `
+                                        <button onclick="window.location.href='index.html'" style="width: auto; padding: 0.8rem 1.5rem; background: var(--primary); color: #010409; font-weight: 700; border-radius: 8px; border: none; cursor: pointer;">
+                                            Upload Resumes
+                                        </button>
+                                    `}
                                 </div>
                             </td>
                         </tr>
